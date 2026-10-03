@@ -22,8 +22,7 @@ Do NOT:
 * pretend that games are hosted by Z Games when they are actually hosted elsewhere
 * bypass access restrictions or network blocks
 
-Instead, design Z Games so that games can come from a legitimate external game catalog/provider (such as GameDistribution, GamePix, GameMonetize, or Playgama embed iframe/API feeds).
-Do not invent an API or pretend a provider exists.
+The site currently uses a supplied Playgama catalog export. Keep game listings and play links attributed to their actual external hosts; do not invent an API or pretend Z Games hosts the games.
 
 Z Games design:
 Make the site feel like a real gaming platform.
@@ -34,7 +33,6 @@ Homepage:
 * Search games
 * Featured games
 * Popular games
-* Recently added
 * Game categories
 * Game cards with thumbnail, title, category
 * Responsive desktop/mobile layout
@@ -48,7 +46,7 @@ Game cards should be designed so that an external game's:
 * category
 * description
 * play URL/embed URL
-can be supplied by a future legitimate game provider.
+are supplied by the external catalog.
 
 Game page:
 Create the UI for:
@@ -61,7 +59,7 @@ Create the UI for:
 * Back to games
 * Related games
 Do NOT create fake playable games.
-If there is no legitimate game source connected yet, make the UI ready for one without pretending it is connected. Provide a clear, polished state explaining how an external provider embed URL or feed connects.
+Game detail pages use the catalog's provider play URL and clearly attribute the external host.
 
 ZChat login:
 I want users to be able to log into Z Games using their existing ZChat account.
@@ -86,7 +84,7 @@ Do not modify ZChat right now.
 Do not add unnecessary backend infrastructure.
 Do not add a database unless it is actually required.
 Do not add fake APIs or fake game data.
-Make the initial result look polished and production-ready even if the external game catalog has not been connected yet.
+The current catalog is stored in `src/data/games.json` and normalized through `src/lib/games.ts`.
 
 This project was built with [Lovable](https://lovable.dev).
 
