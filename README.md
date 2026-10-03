@@ -106,3 +106,7 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+
+## ZChat sign-in configuration
+
+Copy .env.example to .env.local and set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY (a legacy anon key also works) from the same Supabase project used by ZChat. Never put a service-role or secret key in the browser app. Authentication uses Supabase Auth directly; recent games are kept in the current browser's local storage.
