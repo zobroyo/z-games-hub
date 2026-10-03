@@ -1,12 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { Gamepad2, Menu, Search, UserRound, X } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
-import type { User } from "@supabase/supabase-js";
+import { useEffect, useState } from "react";
+import type { ZChatUser } from "@/lib/zchat-oauth";
 import { Button } from "@/components/ui/button";
 import { getRecentlyPlayedGames, type RecentlyPlayedGame } from "@/lib/recent-games";
-import { supabase } from "@/lib/supabase";
+import { beginZChatSignIn, getZChatOAuthUser, signOutOfZChatOnThisDevice, subscribeToZChatAuth } from "@/lib/zchat-oauth";
 
-function metadataValue(user: User | null, keys: string[]) {
+function metadataValue(user: ZChatUser | null, keys: string[]) {
   const metadata = user?.user_metadata;
   for (const key of keys) {
     const value = metadata?.[key];
@@ -18,33 +18,31 @@ function metadataValue(user: User | null, keys: string[]) {
 export function SiteHeader({ onSearch }: { onSearch?: () => void }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-  const [authLoading, setAuthLoading] = useState(Boolean(supabase));
+  const [user, setUser] = useState<ZChatUser | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [authBusy, setAuthBusy] = useState(false);
   const [authError, setAuthError] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [recentGames, setRecentGames] = useState<RecentlyPlayedGame[]>([]);
 
   useEffect(() => {
-    if (!supabase) return;
     let mounted = true;
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setAuthLoading(false);
-    });
-    void supabase.auth.getSession().then(({ data, error }) => {
-      if (!mounted) return;
-      setUser(data.session?.user ?? null);
-      setAuthLoading(false);
-      if (error) setAuthError(error.message);
-    });
+    const refreshUser = async () => {
+      try {
+        const nextUser = await getZChatOAuthUser();
+        if (mounted) setUser(nextUser);
+      } catch (error) {
+        if (mounted) setAuthError(error instanceof Error ? error.message : "Could not check your ZChat session.");
+      } finally {
+        if (mounted) setAuthLoading(false);
+      }
+    };
+    const unsubscribe = subscribeToZChatAuth(() => void refreshUser());
+    void refreshUser();
     return () => {
       mounted = false;
-      subscription.unsubscribe();
+      unsubscribe();
     };
   }, []);
-
   useEffect(() => {
     const refresh = () => setRecentGames(getRecentlyPlayedGames());
     refresh();
@@ -58,43 +56,26 @@ export function SiteHeader({ onSearch }: { onSearch?: () => void }) {
 
   const openAccount = () => {
     setAuthError("");
-    setPassword("");
     setAccountOpen(true);
   };
 
-  const signIn = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!supabase) return;
+  const signIn = async () => {
     setAuthBusy(true);
     setAuthError("");
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
-      if (error) {
-        setAuthError(error.message);
-      } else {
-        setUser(data.user);
-        setPassword("");
-      }
-    } catch {
-      setAuthError("Could not reach Supabase. Check your connection and try again.");
-    } finally {
+      await beginZChatSignIn("/");
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : "Could not start ZChat sign-in.");
       setAuthBusy(false);
     }
   };
-
   const signOut = async () => {
-    if (!supabase) return;
     setAuthBusy(true);
     setAuthError("");
-    const { error } = await supabase.auth.signOut();
-    if (error) setAuthError(error.message);
-    else setUser(null);
+    signOutOfZChatOnThisDevice();
+    setUser(null);
     setAuthBusy(false);
   };
-
   const displayName =
     metadataValue(user, ["display_name", "displayName", "full_name", "name"]) ??
     user?.email ??
@@ -153,16 +134,11 @@ export function SiteHeader({ onSearch }: { onSearch?: () => void }) {
             {authError && <p role="alert" className="mt-4 text-sm text-destructive">{authError}</p>}
             <Button className="mt-6 w-full" variant="outline" onClick={() => void signOut()} disabled={authBusy}>{authBusy ? "Signing out…" : "Sign out"}</Button>
           </> : <>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">Use the same email and password you use for ZChat. Z Games sends sign-in directly to the shared Supabase project.</p>
-            {supabase ? <form className="mt-6 space-y-4" onSubmit={(event) => void signIn(event)}>
-              <label className="block text-sm font-medium" htmlFor="zchat-email">Email</label>
-              <input id="zchat-email" name="email" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} className="h-11 w-full rounded-md border border-input bg-secondary px-3 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary" />
-              <label className="block text-sm font-medium" htmlFor="zchat-password">Password</label>
-              <input id="zchat-password" name="password" type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} className="h-11 w-full rounded-md border border-input bg-secondary px-3 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary" />
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">Continue to ZChat to sign in. If you are already signed in there, Z Games will return you here.</p>
+            <div className="mt-6 space-y-3">
+              <Button className="w-full" onClick={() => void signIn()} disabled={authBusy}>{authBusy ? "Opening ZChat…" : "Login with ZChat"}</Button>
               {authError && <p role="alert" className="text-sm text-destructive">{authError}</p>}
-              <Button className="w-full" type="submit" disabled={authBusy}>{authBusy ? "Signing in…" : "Sign in with ZChat"}</Button>
-            </form> : <div className="mt-6 rounded-md border border-border bg-secondary p-4 text-sm leading-6 text-muted-foreground"><p>Sign-in needs the ZChat Supabase project configuration.</p><p className="mt-2 font-mono text-xs">VITE_SUPABASE_URL<br />VITE_SUPABASE_PUBLISHABLE_KEY</p></div>}
-            <div className="mt-5 flex items-start gap-3 rounded-md bg-secondary p-4 text-sm leading-6 text-muted-foreground"><Gamepad2 className="mt-1 size-4 shrink-0 text-primary" /><p>Your password is sent directly to Supabase over HTTPS. Z Games does not store your password or create another account.</p></div>
+            </div>            <div className="mt-5 flex items-start gap-3 rounded-md bg-secondary p-4 text-sm leading-6 text-muted-foreground"><Gamepad2 className="mt-1 size-4 shrink-0 text-primary" /><p>Sign-in is handled by ZChat and Supabase. Z Games receives an approved sign-in session and never sees your password.</p></div>
           </>}
         </section>
       </div>}

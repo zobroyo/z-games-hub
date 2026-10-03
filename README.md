@@ -109,4 +109,13 @@ npm run dev
 
 ## ZChat sign-in configuration
 
-Copy .env.example to .env.local and set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY (a legacy anon key also works) from the same Supabase project used by ZChat. Never put a service-role or secret key in the browser app. Authentication uses Supabase Auth directly; recent games are kept in the current browser's local storage.
+Z Games uses ZChat as a Supabase OAuth 2.1 provider. Copy .env.example to .env.local and set VITE_SUPABASE_URL and the public VITE_ZCHAT_OAUTH_CLIENT_ID. Never put a client secret, service-role key, or Supabase secret key in the browser app.
+
+Before sign-in can work:
+
+1. In the shared Supabase dashboard, enable **Authentication → OAuth Server** and set the authorization path to `/oauth/consent`. Confirm the Site URL points to the ZChat deployment (`https://z-chat-five.vercel.app`).
+2. Under **Authentication → URL Configuration**, allow the ZChat sign-in callback `https://z-chat-five.vercel.app/**` so its existing Google login can resume the authorization request.
+3. Under **Authentication → OAuth Apps**, create a **Public** client named `Z Games`. Register the exact callback `https://<your-z-games-domain>/auth/zchat/callback` and request only the `email profile` scopes. Do not create or expose a client secret.
+4. Set the generated public client ID as `VITE_ZCHAT_OAUTH_CLIENT_ID` in the Z Games Lovable build environment, then rebuild the site.
+
+Games prompt for ZChat sign-in before play and resume after approval. Recently played games stay in this browser's local storage.

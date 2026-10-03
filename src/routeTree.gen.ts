@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GamesSlugRouteImport } from './routes/games.$slug'
+import { Route as AuthZchatCallbackRouteImport } from './routes/auth.zchat.callback'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +23,40 @@ const GamesSlugRoute = GamesSlugRouteImport.update({
   path: '/games/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthZchatCallbackRoute = AuthZchatCallbackRouteImport.update({
+  id: '/auth/zchat/callback',
+  path: '/auth/zchat/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/games/$slug': typeof GamesSlugRoute
+  '/auth/zchat/callback': typeof AuthZchatCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/games/$slug': typeof GamesSlugRoute
+  '/auth/zchat/callback': typeof AuthZchatCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/games/$slug': typeof GamesSlugRoute
+  '/auth/zchat/callback': typeof AuthZchatCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/games/$slug'
+  fullPaths: '/' | '/games/$slug' | '/auth/zchat/callback'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/games/$slug'
-  id: '__root__' | '/' | '/games/$slug'
+  to: '/' | '/games/$slug' | '/auth/zchat/callback'
+  id: '__root__' | '/' | '/games/$slug' | '/auth/zchat/callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   GamesSlugRoute: typeof GamesSlugRoute
+  AuthZchatCallbackRoute: typeof AuthZchatCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +75,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GamesSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/zchat/callback': {
+      id: '/auth/zchat/callback'
+      path: '/auth/zchat/callback'
+      fullPath: '/auth/zchat/callback'
+      preLoaderRoute: typeof AuthZchatCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   GamesSlugRoute: GamesSlugRoute,
+  AuthZchatCallbackRoute: AuthZchatCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
