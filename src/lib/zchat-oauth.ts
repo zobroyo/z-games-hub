@@ -49,7 +49,7 @@ function safeReturnPath(path: string | null | undefined) {
 }
 
 function oauthClientId() {
-  return import.meta.env.VITE_ZCHAT_OAUTH_CLIENT_ID ?? "6122c80c-02a1-47fb-9a2f-17dba8403fe1";
+  return import.meta.env.VITE_ZCHAT_OAUTH_CLIENT_ID;
 }
 
 function readTokens(): OAuthTokens | null {
